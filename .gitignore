@@ -1,0 +1,19 @@
+# Generated results and figures
+/output/
+
+# Dictionary files: large, separately licensed, download them yourself
+/data/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+
+# Institutional paperwork and editor lock files, kept out of the package repo
+*.odt
+*.pdf
+.~lock.*#

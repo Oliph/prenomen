@@ -1,0 +1,45 @@
+Given the name of the author, please identify the likely gender of the author.
+    Consider the following instructions:
+
+    - Provide the gender as either "male", "female", or "not retrievable".
+    - Include a confidence score between 0.0 and 1.0 indicating how confident you are in your prediction.
+    - Choose exactly one reasoning_code that best describes the primary basis for your prediction:
+        "empirical_database" — name-gender database provided strong evidence (frequency ≥ 0.75)
+        "cultural_origin"    — regional/cultural naming conventions were the decisive signal
+        "linguistic_pattern" — morphological or phonological pattern of the name was used
+        "ambiguous"          — signals conflict or evidence is weak (frequency < 0.60)
+        "insufficient_data"  — not enough information to make a reliable determination
+    - For composed names (e.g., "Jose María", "Emma Charles"), consider the combined meaning, as such names may indicate gender differently than their individual parts would suggest.
+    - In many cultures (Chinese, Korean, Japanese, Vietnamese, Hungarian, etc.) the surname comes first and the given name second. The first_name/last_name fields in this prompt reflect the data as extracted and may not match that convention. If the country affiliation or the name itself suggests such a culture, assume the given name is whichever part carries gender signal in that naming system, without over-explaining the field order.
+{% if dict_matches %}
+
+    The following name-gender databases were queried for this name:
+{% for m in dict_matches %}
+    - {{ m.source }}: {{ m.gender.value if m.gender else "not found" }}{{ " (frequency ratio: %.2f)" | format(m.frequency) if m.frequency is not none else "" }}
+{% endfor %}
+    Frequency ratio interpretation: ≥ 0.90 = near-certain empirical evidence; 0.75–0.89 = strong evidence; 0.60–0.74 = moderate evidence; < 0.60 = ambiguous, apply linguistic judgement.
+    Apply your own linguistic knowledge only when databases are absent, low-frequency, or contradictory.
+{% set scored = dict_matches | selectattr('gender') | selectattr('frequency') | list %}
+{% if scored %}
+    Summary — mean frequency ratio per gender: {% for g, ms in scored | groupby('gender') %}{{ g.value }}: {{ "%.2f" | format((ms | map(attribute='frequency') | sum) / (ms | length)) }} ({{ ms | length }} source{{ 's' if ms | length > 1 }}){{ "; " if not loop.last }}{% endfor %}.
+{% endif %}
+{% endif %}
+
+    The first name of the author is: {{ first_name }}.
+    The last name of the author is: {{ last_name }}.
+{% if countries %}
+    The author is affiliated with institution(s) in: {{ countries | join(", ") }}.
+    Use this as a soft hint for regional naming conventions, not as a hard constraint.
+{% endif %}
+
+    Please return the response in **strict JSON format only**, with no additional text.
+    Use the following structure:
+    {
+        "author": {
+            "first_name": "{{ first_name }}",
+            "last_name": "{{ last_name }}",
+            "gender": "male/female/not retrievable",
+            "confidence": 0.95,
+            "reasoning_code": "empirical_database/cultural_origin/linguistic_pattern/ambiguous/insufficient_data"
+        }
+    }

@@ -1,0 +1,86 @@
+# =============================================================================
+# Optional configuration for Prenomen.from_config("examples/prenomen.yaml")
+# =============================================================================
+# Every setting here is also a plain constructor argument, so this file is a
+# convenience for things you want to keep and share -- an endpoint, a model, the
+# dictionaries you use -- not a requirement.
+#
+#   from prenomen import Prenomen
+#   p = Prenomen.from_config("examples/prenomen.yaml")
+
+model:
+  name: "gpt-4o-mini"
+
+api:
+  # Any endpoint speaking the OpenAI chat completions API, hosted or local, as
+  # long as it supports JSON-schema structured output. There is no default: a
+  # typo must not quietly send names to someone else's server.
+  base_url: "https://api.openai.com/v1"
+  # Name the environment variable holding the key. Never put the key itself in
+  # this file: it gets committed. For a local endpoint that ignores
+  # authentication, drop this line and set `api_key: "dummy"` instead.
+  api_key_env: "OPENAI_API_KEY"
+
+# Passed straight to the chat completions call.
+parameters:
+  temperature: 0.1
+  max_tokens: 150
+
+inference:
+  # Concurrent in-flight requests used by infer_many. Raise it for a local server
+  # you control; keep it low for a metered hosted API with a rate limit.
+  max_workers: 16
+
+  # Accept the dictionary verdict without calling the model when the weighted
+  # dictionary confidence reaches this. With a single matching dictionary this
+  # reads as "frequency ratio at least 0.85". Set 0.0 to always call the model.
+  dict_bypass_threshold: 0.85
+
+  # Remember this many model answers per process. Repeated names then cost
+  # nothing. null for unbounded, 0 to disable.
+  cache_size: 100000
+
+  # Parse the dictionaries now rather than on the first name. Worth it in a
+  # script or a worker process, where a five-minute pause mid-run is worse.
+  preload: false
+
+# -----------------------------------------------------------------------------
+# Name-gender dictionaries
+# -----------------------------------------------------------------------------
+# All optional. Without any of them every name goes to the model, which works but
+# is slower, less accurate and more expensive. `prenomen-dicts get all` downloads
+# the four shipped ones; `prenomen-dicts path` shows where they go. Listing a name
+# here is all that is needed -- the registry knows how to read each of them.
+#
+# A list of your own is a full spec instead of a name. Two shapes are supported
+# and they cover most published name-gender lists:
+#
+#   format: wgnd    one row per (name, country, gender) plus a frequency weight
+#   format: counts  one row per name plus a male count and a female count
+#
+# `family` groups near-duplicate sources so they share one vote instead of
+# compounding. `weight` sets reliability relative to a broad source: a specialist
+# list covering one language or country is narrow but precise, so a hit there is
+# stronger evidence and weighs double.
+
+dictionaries:
+  - wgnd
+  - chinese_pinyin
+  - chinese_cn
+  - naampy
+
+  # ...or your own list, which needs no code change:
+  # - name: my_list
+  #   path: "~/data/my_names.tsv"
+  #   format: counts
+  #   separator: "\t"
+  #   name_col: "name"
+  #   male_col: "m"
+  #   female_col: "f"
+  #   family: regional
+  #   weight: 2.0
+
+# Where the shipped dictionaries live. Omitted, Prenomen looks at
+# $PRENOMEN_DICT_DIR, then ./data/dictionaries, then the XDG data directory --
+# the same place `prenomen-dicts get` writes to, so this is usually unnecessary.
+# dictionary_dir: "~/.local/share/prenomen/dictionaries"
